@@ -2,7 +2,7 @@
  * API helper — communicates with FastAPI backend
  */
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 async function request(path, options = {}) {
     const url = `${API_BASE}${path}`;
