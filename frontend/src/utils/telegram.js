@@ -13,9 +13,9 @@ export function getUserData() {
         // Dev mode fallback
         return {
             id: 0,
-            first_name: 'Dev',
+            first_name: 'User',
             last_name: 'User',
-            username: 'dev_user',
+            username: 'user',
             photo_url: null,
             language_code: 'uz',
         };
