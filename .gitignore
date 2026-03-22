@@ -1,0 +1,36 @@
+# Node modules and build output
+node_modules/
+dist/
+build/
+.next/
+.expo/
+npm-debug.log*
+
+# Python caches and environments
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+venv/
+.venv/
+.python-version
+
+# Environment variables (CRITICAL: NEVER PUSH THESE)
+.env
+.env.local
+.env.*.local
+
+# OS system files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+backend/app/logs/
+frontend/dist/
+*.log
