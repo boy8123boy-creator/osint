@@ -2,10 +2,19 @@
  * API helper — communicates with FastAPI backend
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 
 async function request(path, options = {}) {
-    const url = `${API_BASE}${path}`;
+    // Ensure path starts with / and doesn't result in //
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+    // If API_BASE is an absolute URL and doesn't end with /api 
+    // and the path doesn't start with /api, we might need to inject it.
+    // However, most of our paths in this file already include what's needed.
+    // Let's just be direct:
+    const url = `${API_BASE}${cleanPath}`.replace(/([^:])\/\//g, '$1/');
+
+    console.log(`📡 API Request: ${options.method || 'GET'} ${url}`);
     const config = {
         headers: {
             'Content-Type': 'application/json',
@@ -42,22 +51,22 @@ async function request(path, options = {}) {
 
 // ─── User Endpoints ────────────────────
 export async function initUser(userData) {
-    return request('/users/init', {
+    return request('/api/users/init', {
         method: 'POST',
         body: JSON.stringify(userData),
     });
 }
 
 export async function getUser(telegramId) {
-    return request(`/users/${telegramId}`);
+    return request(`/api/users/${telegramId}`);
 }
 
 export async function getUserBio(telegramId) {
-    return request(`/users/${telegramId}/bio`);
+    return request(`/api/users/${telegramId}/bio`);
 }
 
 export async function grantSearches(targetUserId, searchCount) {
-    return request('/users/grant', {
+    return request('/api/users/grant', {
         method: 'POST',
         body: JSON.stringify({
             target_user_id: targetUserId,
@@ -68,7 +77,7 @@ export async function grantSearches(targetUserId, searchCount) {
 
 // ─── Search Endpoints ──────────────────
 export async function searchUsername(username, telegramId) {
-    return request('/search/', {
+    return request('/api/search/', {
         method: 'POST',
         body: JSON.stringify({
             username: username,
@@ -78,17 +87,17 @@ export async function searchUsername(username, telegramId) {
 }
 
 export async function getSearchHistory(telegramId) {
-    return request(`/search/history/${telegramId}`);
+    return request(`/api/search/history/${telegramId}`);
 }
 
 // ─── Tariff Endpoints ──────────────────
 export async function getTariffs() {
-    return request('/tariffs/');
+    return request('/api/tariffs/');
 }
 
 // ─── Payment Endpoints ────────────────
 export async function createInvoice(telegramId, tariffId) {
-    return request('/payments/invoice', {
+    return request('/api/payments/invoice', {
         method: 'POST',
         body: JSON.stringify({
             telegram_id: telegramId,
@@ -98,7 +107,7 @@ export async function createInvoice(telegramId, tariffId) {
 }
 
 export async function confirmPayment(telegramId, tariffId, paymentId, starsAmount) {
-    return request('/payments/confirm', {
+    return request('/api/payments/confirm', {
         method: 'POST',
         body: JSON.stringify({
             telegram_id: telegramId,
@@ -111,37 +120,37 @@ export async function confirmPayment(telegramId, tariffId, paymentId, starsAmoun
 
 // ─── Admin Endpoints ──────────────────
 export async function getAdminStats(adminId) {
-    return request(`/users/admin/stats?admin_id=${adminId}`);
+    return request(`/api/users/admin/stats?admin_id=${adminId}`);
 }
 
 export async function getAllUsers(adminId) {
-    return request(`/users/admin/all-users?admin_id=${adminId}`);
+    return request(`/api/users/admin/all-users?admin_id=${adminId}`);
 }
 
 export async function getAllSearchHistory(adminId) {
-    return request(`/search/history/all?admin_id=${adminId}`);
+    return request(`/api/search/history/all?admin_id=${adminId}`);
 }
 
 export async function getAllTariffs(adminId) {
-    return request(`/tariffs/admin/all?admin_id=${adminId}`);
+    return request(`/api/tariffs/admin/all?admin_id=${adminId}`);
 }
 
 export async function createTariff(adminId, tariffData) {
-    return request(`/tariffs/?admin_id=${adminId}`, {
+    return request(`/api/tariffs/?admin_id=${adminId}`, {
         method: 'POST',
         body: JSON.stringify(tariffData),
     });
 }
 
 export async function updateTariff(adminId, tariffId, tariffData) {
-    return request(`/tariffs/${tariffId}?admin_id=${adminId}`, {
+    return request(`/api/tariffs/${tariffId}?admin_id=${adminId}`, {
         method: 'PUT',
         body: JSON.stringify(tariffData),
     });
 }
 
 export async function deleteTariff(adminId, tariffId) {
-    return request(`/tariffs/${tariffId}?admin_id=${adminId}`, {
+    return request(`/api/tariffs/${tariffId}?admin_id=${adminId}`, {
         method: 'DELETE',
     });
 }
