@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiMagnifyingGlass, HiGlobeAlt, HiUserGroup, HiCamera } from 'react-icons/hi2';
+import { FaInstagram } from 'react-icons/fa';
 import ScanAnimation from '../components/ScanAnimation';
 import EncryptedText from '../components/EncryptedText';
 import { searchUsername } from '../utils/api';
@@ -374,46 +375,100 @@ export default function Home() {
                             </motion.div>
                         )}
 
-                        {/* Sherlock Results */}
-                        {results.sherlock_results?.length > 0 && (
-                            <motion.div
-                                className="result-section"
-                                initial={{ opacity: 0, y: 16 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                <div className="result-section-title">
-                                    <HiGlobeAlt />
-                                    <EncryptedText
-                                        text={`Topilgan saytlar (${results.total_sites_found})`}
-                                        revealDelayMs={35}
-                                        flipDelayMs={25}
-                                        trigger={!!results}
-                                    />
-                                </div>
-                                {results.sherlock_results.map((result, index) => (
+                        {/* ── Instagram Section ── */}
+                        {(() => {
+                            const instagramResult = results.sherlock_results?.find(r =>
+                                r.site_name.toLowerCase().includes('instagram') ||
+                                r.url.toLowerCase().includes('instagram.com')
+                            );
+                            if (!instagramResult) return null;
+
+                            return (
+                                <motion.div
+                                    className="result-section"
+                                    initial={{ opacity: 0, y: 16 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.18 }}
+                                >
+                                    <div className="result-section-title">
+                                        <FaInstagram />
+                                        <EncryptedText
+                                            text="Instagram"
+                                            revealDelayMs={60}
+                                            flipDelayMs={30}
+                                            trigger={!!results}
+                                        />
+                                    </div>
                                     <motion.a
-                                        key={index}
-                                        href={result.url}
+                                        href={instagramResult.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="result-item"
-                                        initial={{ opacity: 0, x: -16 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: 0.04 * index }}
+                                        style={{ borderLeft: '3px solid #E1306C' }}
+                                        whileHover={{ x: 4 }}
                                     >
-                                        <div className="result-item-icon">
-                                            <HiGlobeAlt />
+                                        <div className="result-item-icon" style={{ color: '#E1306C' }}>
+                                            <FaInstagram />
                                         </div>
                                         <div className="result-item-info">
-                                            <div className="result-item-name">{result.site_name}</div>
-                                            <div className="result-item-url">{result.url}</div>
+                                            <div className="result-item-name">Instagram Profil</div>
+                                            <div className="result-item-url">{instagramResult.url}</div>
                                         </div>
-                                        <span className="badge badge-found">Found</span>
+                                        <span className="badge badge-found" style={{ color: '#E1306C', borderColor: 'rgba(225, 48, 108, 0.3)' }}>Found</span>
                                     </motion.a>
-                                ))}
-                            </motion.div>
-                        )}
+                                </motion.div>
+                            );
+                        })()}
+
+                        {/* Sherlock Results */}
+                        {results.sherlock_results?.filter(r =>
+                            !r.site_name.toLowerCase().includes('instagram') &&
+                            !r.url.toLowerCase().includes('instagram.com')
+                        ).length > 0 && (
+                                <motion.div
+                                    className="result-section"
+                                    initial={{ opacity: 0, y: 16 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                >
+                                    <div className="result-section-title">
+                                        <HiGlobeAlt />
+                                        <EncryptedText
+                                            text={`Topilgan boshqa saytlar (${results.total_sites_found - (results.sherlock_results?.some(r => r.site_name.toLowerCase().includes('instagram')) ? 1 : 0)})`}
+                                            revealDelayMs={35}
+                                            flipDelayMs={25}
+                                            trigger={!!results}
+                                        />
+                                    </div>
+                                    {results.sherlock_results
+                                        ? results.sherlock_results
+                                            .filter(r =>
+                                                !r.site_name.toLowerCase().includes('instagram') &&
+                                                !r.url.toLowerCase().includes('instagram.com')
+                                            )
+                                            .map((result, index) => (
+                                                <motion.a
+                                                    key={index}
+                                                    href={result.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="result-item"
+                                                    initial={{ opacity: 0, x: -16 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: 0.04 * index }}
+                                                >
+                                                    <div className="result-item-icon">
+                                                        <HiGlobeAlt />
+                                                    </div>
+                                                    <div className="result-item-info">
+                                                        <div className="result-item-name">{result.site_name}</div>
+                                                        <div className="result-item-url">{result.url}</div>
+                                                    </div>
+                                                    <span className="badge badge-found">Found</span>
+                                                </motion.a>
+                                            )) : null}
+                                </motion.div>
+                            )}
 
                         {/* Balance */}
                         <motion.div
