@@ -468,7 +468,9 @@ h3 {
   align-items: center;
   gap: 3px;
   cursor: pointer;
-  padding: 8px 20px;
+  padding: 8px 12px;
+  border: none;
+  background: none;
   border-radius: var(--r-lg);
   transition: all .25s ease;
   position: relative;
@@ -477,16 +479,17 @@ h3 {
 }
 
 .nav-item-icon {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   color: var(--text-3);
   transition: all .25s ease;
 }
 
 .nav-item-label {
   font-family: var(--font);
-  font-size: 0.58rem;
+  font-size: 0.55rem;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
   color: var(--text-3);
   transition: all .25s ease;
@@ -1054,4 +1057,164 @@ h3 {
   text-align: center;
   line-height: 1.9;
   letter-spacing: 0.2px;
+}
+
+/* ── Admin Panel ────────────────────────── */
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 4px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+
+.admin-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px 8px;
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-3);
+  font-family: var(--font);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all .2s ease;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-tab:hover {
+  background: var(--white-06);
+  color: var(--text-2);
+}
+
+.admin-tab-active {
+  background: var(--white-10) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border-hi);
+}
+
+.admin-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-card);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all .2s ease;
+  font-size: 0.82rem;
+}
+
+.admin-icon-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hi);
+  color: var(--text);
+}
+
+.admin-icon-btn-danger:hover {
+  background: rgba(255, 60, 60, 0.08);
+  border-color: rgba(255, 60, 60, 0.3);
+  color: rgba(255, 100, 100, 0.9);
+}
+
+.admin-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-max);
+  background: var(--bg-card);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.admin-action-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hi);
+  color: var(--text);
+}
+
+.admin-cancel-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-max);
+  background: var(--bg-card);
+  color: var(--text-3);
+  font-family: var(--font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.admin-cancel-btn:hover {
+  background: rgba(255, 60, 60, 0.08);
+  border-color: rgba(255, 60, 60, 0.3);
+  color: rgba(255, 100, 100, 0.9);
+}
+
+.admin-input {
+  padding-left: 14px !important;
+  font-size: 0.78rem !important;
+  border-radius: var(--r-md) !important;
+}
+
+/* Active nav styles for BottomNav */
+.nav-icon {
+  font-size: 1.4rem;
+  color: var(--text-3);
+  transition: all .25s ease;
+}
+
+.nav-label {
+  font-family: var(--font);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-3);
+  transition: all .25s ease;
+}
+
+.nav-item-active {
+  background: var(--white-06);
+}
+
+.nav-item-active .nav-icon {
+  color: var(--text);
+}
+
+.nav-item-active .nav-label {
+  color: var(--white-60);
+}
+
+.nav-indicator {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  background: var(--white);
+  border-radius: 99px;
 }

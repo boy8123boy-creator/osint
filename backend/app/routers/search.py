@@ -1,6 +1,7 @@
 """
 Search Router — OSINT search endpoint.
 Handles username search with balance checking.
+Robust error handling for production.
 """
 
 from fastapi import APIRouter, HTTPException
@@ -48,8 +49,21 @@ async def search_username(request: SearchRequest):
             {"$inc": {"total_searches": 1}}
         )
     
-    # Run OSINT search
-    results = await osint_aggregator.aggregate_search(request.username)
+    # Run OSINT search with error handling
+    try:
+        results = await osint_aggregator.aggregate_search(request.username)
+    except Exception as e:
+        print(f"❌ Search aggregator failed: {e}")
+        # Refund the search if it failed completely
+        if not is_admin:
+            await users_collection.update_one(
+                {"telegram_id": request.telegram_id},
+                {"$inc": {"balance": 1, "total_searches": -1}}
+            )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Qidiruv xatosi: {str(e)}"
+        )
     
     # Save search history
     search_record = {
@@ -61,7 +75,10 @@ async def search_username(request: SearchRequest):
         },
         "created_at": datetime.now(timezone.utc),
     }
-    await search_history_collection.insert_one(search_record)
+    try:
+        await search_history_collection.insert_one(search_record)
+    except Exception as e:
+        print(f"⚠️ Could not save search history: {e}")
     
     # Get updated balance
     updated_user = await users_collection.find_one({"telegram_id": request.telegram_id})
@@ -92,6 +109,31 @@ async def get_search_history(telegram_id: int):
     async for record in cursor:
         history.append({
             "id": str(record["_id"]),
+            "target_username": record.get("target_username", ""),
+            "results_summary": record.get("results_summary", {}),
+            "created_at": record.get("created_at", "").isoformat() if record.get("created_at") else "",
+        })
+    
+    return {"history": history}
+
+
+@router.get("/history/all")
+async def get_all_search_history(admin_id: int = 0):
+    """Admin: Get all users' search history."""
+    if admin_id != settings.ADMIN_ID:
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+    
+    cursor = search_history_collection.find({}).sort("created_at", -1).limit(200)
+    
+    history = []
+    async for record in cursor:
+        # Get the user info for display
+        user = await users_collection.find_one({"telegram_id": record.get("user_id")})
+        history.append({
+            "id": str(record["_id"]),
+            "user_id": record.get("user_id"),
+            "user_name": f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() if user else "Noma'lum",
+            "user_username": user.get("username", "") if user else "",
             "target_username": record.get("target_username", ""),
             "results_summary": record.get("results_summary", {}),
             "created_at": record.get("created_at", "").isoformat() if record.get("created_at") else "",

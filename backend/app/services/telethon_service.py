@@ -1,6 +1,7 @@
 """
 Telethon Service — Telegram user intelligence via MTProto API.
 Fetches user profile info, bio, photos, and online status.
+With reconnection support and robust error handling.
 """
 
 from telethon import TelegramClient
@@ -13,19 +14,27 @@ import os
 
 # Telethon client (session stored locally)
 _client = None
+_client_lock = asyncio.Lock()
 
 
 async def get_client() -> TelegramClient:
-    """Get or create Telethon client."""
+    """Get or create Telethon client with reconnection support."""
     global _client
-    if _client is None or not _client.is_connected():
-        session_path = os.path.join(os.path.dirname(__file__), "..", "..", "telethon_session")
-        _client = TelegramClient(
-            session_path,
-            settings.TELEGRAM_API_ID,
-            settings.TELEGRAM_API_HASH
-        )
-        await _client.start(bot_token=settings.BOT_TOKEN)
+    async with _client_lock:
+        if _client is None or not _client.is_connected():
+            try:
+                session_path = os.path.join(os.path.dirname(__file__), "..", "..", "telethon_session")
+                _client = TelegramClient(
+                    session_path,
+                    settings.TELEGRAM_API_ID,
+                    settings.TELEGRAM_API_HASH
+                )
+                await _client.start(bot_token=settings.BOT_TOKEN)
+                print("✅ Telethon client connected")
+            except Exception as e:
+                print(f"❌ Telethon client connection failed: {e}")
+                _client = None
+                raise
     return _client
 
 
@@ -73,9 +82,11 @@ async def get_user_info(username: str) -> dict:
         # Try to get profile photo
         if entity.photo:
             try:
+                photos_dir = os.path.join(os.path.dirname(__file__), "..", "..", "photos")
+                os.makedirs(photos_dir, exist_ok=True)
                 photo_path = await client.download_profile_photo(
                     entity, 
-                    file=os.path.join(os.path.dirname(__file__), "..", "..", "photos", f"{entity.id}.jpg")
+                    file=os.path.join(photos_dir, f"{entity.id}.jpg")
                 )
                 if photo_path:
                     result["photo_url"] = f"/api/photos/{entity.id}.jpg"
@@ -86,6 +97,12 @@ async def get_user_info(username: str) -> dict:
         
     except ValueError as e:
         print(f"❌ User not found: {username} — {e}")
+        return None
+    except ConnectionError as e:
+        print(f"❌ Telethon connection error for {username}: {e}")
+        # Reset client so it reconnects next time
+        global _client
+        _client = None
         return None
     except Exception as e:
         print(f"❌ Telethon error for {username}: {e}")

@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 from app.models import TariffCreate, TariffUpdate, TariffResponse
 from app.database import tariffs_collection
+from app.config import settings
 
 router = APIRouter(prefix="/api/tariffs", tags=["tariffs"])
 
@@ -47,9 +48,39 @@ async def get_tariffs():
     return {"tariffs": tariffs}
 
 
+@router.get("/admin/all")
+async def get_all_tariffs(admin_id: int = 0):
+    """Admin: Get all tariffs including inactive ones."""
+    if admin_id != settings.ADMIN_ID:
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+    
+    cursor = tariffs_collection.find({}).sort("price_stars", 1)
+    tariffs = []
+    
+    async for tariff in cursor:
+        search_count = tariff.get("search_count", 1)
+        price_stars = tariff.get("price_stars", 0)
+        unit_price = price_stars / search_count if search_count > 0 else 0
+        
+        tariffs.append({
+            "id": str(tariff["_id"]),
+            "name": tariff.get("name", ""),
+            "search_count": search_count,
+            "price_stars": price_stars,
+            "description": tariff.get("description"),
+            "is_active": tariff.get("is_active", True),
+            "unit_price": round(unit_price, 1),
+        })
+    
+    return {"tariffs": tariffs}
+
+
 @router.post("/")
-async def create_tariff(tariff: TariffCreate):
+async def create_tariff(tariff: TariffCreate, admin_id: int = 0):
     """Admin: Create a new tariff."""
+    if admin_id != settings.ADMIN_ID:
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+    
     tariff_doc = tariff.model_dump()
     result = await tariffs_collection.insert_one(tariff_doc)
     
@@ -64,8 +95,11 @@ async def create_tariff(tariff: TariffCreate):
 
 
 @router.put("/{tariff_id}")
-async def update_tariff(tariff_id: str, tariff: TariffUpdate):
+async def update_tariff(tariff_id: str, tariff: TariffUpdate, admin_id: int = 0):
     """Admin: Update an existing tariff."""
+    if admin_id != settings.ADMIN_ID:
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+    
     try:
         obj_id = ObjectId(tariff_id)
     except:
@@ -93,8 +127,11 @@ async def update_tariff(tariff_id: str, tariff: TariffUpdate):
 
 
 @router.delete("/{tariff_id}")
-async def delete_tariff(tariff_id: str):
+async def delete_tariff(tariff_id: str, admin_id: int = 0):
     """Admin: Soft delete a tariff (set is_active to False)."""
+    if admin_id != settings.ADMIN_ID:
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+    
     try:
         obj_id = ObjectId(tariff_id)
     except:

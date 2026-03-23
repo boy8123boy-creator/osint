@@ -16,14 +16,25 @@ async function request(path, options = {}) {
 
     try {
         const response = await fetch(url, config);
-        const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.detail || `HTTP ${response.status}`);
+            let errorMessage = `HTTP ${response.status}`;
+            try {
+                const data = await response.json();
+                errorMessage = data.detail || errorMessage;
+            } catch {
+                // response wasn't JSON
+            }
+            throw new Error(errorMessage);
         }
 
+        const data = await response.json();
         return data;
     } catch (error) {
+        if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+            console.error(`API Error [${path}]: Server ulanmagan yoki CORS xatosi`);
+            throw new Error('Serverga ulanib bo\'lmadi. Iltimos, keyinroq urinib ko\'ring.');
+        }
         console.error(`API Error [${path}]:`, error);
         throw error;
     }
@@ -95,5 +106,42 @@ export async function confirmPayment(telegramId, tariffId, paymentId, starsAmoun
             payment_id: paymentId,
             stars_amount: starsAmount,
         }),
+    });
+}
+
+// ─── Admin Endpoints ──────────────────
+export async function getAdminStats(adminId) {
+    return request(`/users/admin/stats?admin_id=${adminId}`);
+}
+
+export async function getAllUsers(adminId) {
+    return request(`/users/admin/all-users?admin_id=${adminId}`);
+}
+
+export async function getAllSearchHistory(adminId) {
+    return request(`/search/history/all?admin_id=${adminId}`);
+}
+
+export async function getAllTariffs(adminId) {
+    return request(`/tariffs/admin/all?admin_id=${adminId}`);
+}
+
+export async function createTariff(adminId, tariffData) {
+    return request(`/tariffs/?admin_id=${adminId}`, {
+        method: 'POST',
+        body: JSON.stringify(tariffData),
+    });
+}
+
+export async function updateTariff(adminId, tariffId, tariffData) {
+    return request(`/tariffs/${tariffId}?admin_id=${adminId}`, {
+        method: 'PUT',
+        body: JSON.stringify(tariffData),
+    });
+}
+
+export async function deleteTariff(adminId, tariffId) {
+    return request(`/tariffs/${tariffId}?admin_id=${adminId}`, {
+        method: 'DELETE',
     });
 }
