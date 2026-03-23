@@ -27,7 +27,6 @@ EXPOSE 8000
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8000
 
-# Start command
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+# Start command (shell form for better variable expansion)
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
