@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { HiCheck, HiGift } from 'react-icons/hi2';
-import { getTariffs, createInvoice } from '../utils/api';
+import { getTariffs, createInvoice, confirmPayment } from '../utils/api';
 import { getUserData, hapticFeedback, showAlert } from '../utils/telegram';
 
 export default function Pay() {
@@ -25,17 +25,37 @@ export default function Pay() {
         try {
             const userData = getUserData();
             const data = await createInvoice(userData.id, tariff.id);
-            if (data.success && data.invoice) {
-                const tg = window.Telegram?.WebApp;
-                if (tg?.openInvoice) {
-                    showAlert(
-                        `${data.invoice.title}\n\n${data.invoice.description}\n\nNarx: ${tariff.price_stars} Stars\n\nTo'lov uchun botga /pay_${tariff.id} buyrug'ini yuboring.`
-                    );
-                } else {
-                    showAlert(
-                        `${tariff.name}\n💰 ${tariff.price_stars} Stars\n🔍 ${tariff.search_count} ta qidiruv\n\nTelegram ichida to'lov uchun botga yozing.`
-                    );
-                }
+            const tg = window.Telegram?.WebApp;
+
+            if (data.success && data.invoice_url && tg?.openInvoice) {
+                // native Telegram Stars payment
+                tg.openInvoice(data.invoice_url, async (status) => {
+                    if (status === 'paid') {
+                        try {
+                            // confirm the payment in backend to add balance
+                            await confirmPayment(userData.id, tariff.id, 'stars_payment_' + Date.now(), tariff.price_stars);
+                            showAlert("To'lov muvaffaqiyatli! Qidiruvlar balansingizga qo'shildi.");
+                            hapticFeedback('notification');
+                            // refresh user data/balance if needed (could rely on global state or reload)
+                        } catch (err) {
+                            showAlert("Balansni yangilashda xatolik: " + err.message);
+                        }
+                    } else if (status === 'cancelled') {
+                        // ignore cancelled
+                    } else {
+                        showAlert("To'lov xatosi: " + status);
+                    }
+                });
+            } else {
+                // Fallback: Bot link with deep-link pay command
+                const botUsername = 'osint_mrrg_bot'; // Replace with actual bot username
+                const payCommand = `pay_${tariff.id}`;
+                const botLink = `https://t.me/${botUsername}?start=${payCommand}`;
+
+                showAlert(
+                    `${tariff.name} — ${tariff.price_stars} Stars\n\nTelegram native to'lov ishlamadi. Bot orqali to'lovni davom ettirishni istaysizmi?`,
+                    () => tg?.openTelegramLink(botLink)
+                );
             }
         } catch (err) {
             showAlert('Xatolik: ' + (err.message || "To'lov yaratib bo'lmadi"));

@@ -3,6 +3,7 @@ Payments Router — Telegram Stars payment integration.
 Creates invoices and processes successful payments.
 """
 
+import httpx
 from fastapi import APIRouter, HTTPException, Request
 from bson import ObjectId
 from app.models import PaymentInvoiceRequest, PaymentConfirmation
@@ -48,9 +49,26 @@ async def create_invoice(request: PaymentInvoiceRequest):
         "provider_token": "",  # Empty for Telegram Stars
     }
     
+    # Create invoice link via Telegram Bot API
+    invoice_url = None
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"https://api.telegram.org/bot{settings.BOT_TOKEN}/createInvoiceLink",
+                json=invoice_payload
+            )
+            data = resp.json()
+            if data.get("ok"):
+                invoice_url = data["result"]
+            else:
+                print(f"❌ Telegram createInvoiceLink error: {data}")
+    except Exception as e:
+        print(f"❌ Error calling Telegram API: {e}")
+    
     return {
         "success": True,
         "invoice": invoice_payload,
+        "invoice_url": invoice_url,
         "tariff": {
             "id": str(tariff["_id"]),
             "name": tariff["name"],

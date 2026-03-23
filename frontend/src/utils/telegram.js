@@ -49,11 +49,12 @@ export function openInvoice(invoiceUrl, callback) {
     }
 }
 
-export function showAlert(message) {
+export function showAlert(message, callback) {
     if (tg?.showAlert) {
-        tg.showAlert(message);
+        tg.showAlert(message, callback);
     } else {
         alert(message);
+        if (callback) callback();
     }
 }
 
