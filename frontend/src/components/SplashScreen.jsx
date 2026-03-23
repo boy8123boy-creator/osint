@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import EncryptedText from './EncryptedText';
 
 export default function SplashScreen({ isVisible, onComplete }) {
     const [loopCount, setLoopCount] = React.useState(0);
@@ -44,6 +45,7 @@ export default function SplashScreen({ isVisible, onComplete }) {
                         background: '#000',
                         display: 'flex', flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center',
+                        gap: 24,
                     }}
                 >
                     {/* ── Video (looped 3x, centered, smaller, NO BORDER) ── */}
@@ -69,8 +71,43 @@ export default function SplashScreen({ isVisible, onComplete }) {
                             }}
                         />
                     </motion.div>
+
+                    {/* ── Encrypted Text Below Video ── */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: isFadingOut ? 0 : 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.5 }}
+                        style={{ textAlign: 'center' }}
+                    >
+                        <div style={{
+                            fontSize: '1.1rem', fontWeight: 800,
+                            color: '#fff', letterSpacing: '2px',
+                            textTransform: 'uppercase', marginBottom: 8,
+                        }}>
+                            <EncryptedText
+                                text="OSINT Scanner"
+                                revealDelayMs={80}
+                                flipDelayMs={40}
+                                trigger={isVisible}
+                            />
+                        </div>
+                        <div style={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: '0.65rem',
+                            color: 'rgba(255,255,255,0.3)',
+                            letterSpacing: '1px',
+                        }}>
+                            <EncryptedText
+                                text="Razvedka tizimi yuklanmoqda..."
+                                revealDelayMs={50}
+                                flipDelayMs={30}
+                                trigger={isVisible}
+                            />
+                        </div>
+                    </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>
     );
 }
+

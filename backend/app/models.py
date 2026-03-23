@@ -88,6 +88,8 @@ class SearchResponse(BaseModel):
     target_username: str
     telegram_info: Optional[TelegramUserInfo] = None
     sherlock_results: List[SherlockResult] = []
+    common_chats: List[Dict[str, Any]] = []
+    stories: List[Dict[str, Any]] = []
     total_sites_found: int = 0
     search_timestamp: str = ""
     remaining_balance: int = 0

@@ -88,6 +88,8 @@ async def search_username(request: SearchRequest):
         target_username=results.get("target_username", request.username),
         telegram_info=results.get("telegram_info"),
         sherlock_results=results.get("sherlock_results", []),
+        common_chats=results.get("common_chats", []),
+        stories=results.get("stories", []),
         total_sites_found=results.get("total_sites_found", 0),
         search_timestamp=results.get("search_timestamp", ""),
         remaining_balance=remaining,

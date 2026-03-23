@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HiMagnifyingGlass, HiGlobeAlt } from 'react-icons/hi2';
+import { HiMagnifyingGlass, HiGlobeAlt, HiUserGroup, HiCamera } from 'react-icons/hi2';
 import ScanAnimation from '../components/ScanAnimation';
+import EncryptedText from '../components/EncryptedText';
 import { searchUsername } from '../utils/api';
 import { getUserData, hapticFeedback } from '../utils/telegram';
 
@@ -33,6 +34,21 @@ export default function Home() {
 
     const isEmpty = !results && !isSearching;
 
+    // Chat type emoji mapping
+    const chatTypeEmoji = {
+        channel: '📢',
+        supergroup: '👥',
+        group: '💬',
+        unknown: '📋',
+    };
+
+    const chatTypeLabel = {
+        channel: 'Kanal',
+        supergroup: 'Superguruh',
+        group: 'Guruh',
+        unknown: 'Chat',
+    };
+
     return (
         <div>
             {/* ── Header ─────────────────────────── */}
@@ -42,13 +58,24 @@ export default function Home() {
                 style={{ marginBottom: 24 }}
             >
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff', marginBottom: 4 }}>
-                    OSINT Scanner
+                    <EncryptedText
+                        text="OSINT Scanner"
+                        revealDelayMs={60}
+                        flipDelayMs={35}
+                        trigger={true}
+                        revealedClassName="encrypted-revealed"
+                    />
                 </h1>
                 <p style={{
                     fontFamily: '"JetBrains Mono",monospace', fontSize: '0.68rem',
                     color: 'rgba(255,255,255,0.35)', letterSpacing: '1px',
                 }}>
-                    Username bo'yicha razvedka qidiruv
+                    <EncryptedText
+                        text="Username bo'yicha razvedka qidiruv"
+                        revealDelayMs={30}
+                        flipDelayMs={25}
+                        trigger={true}
+                    />
                 </p>
             </motion.div>
 
@@ -150,7 +177,12 @@ export default function Home() {
                             color: 'rgba(255,255,255,0.3)', textAlign: 'center',
                             lineHeight: 1.8, letterSpacing: '0.2px',
                         }}>
-                            Username kiriting va<br />OSINT razvedkani boshlang
+                            <EncryptedText
+                                text="Username kiriting va OSINT razvedkani boshlang"
+                                revealDelayMs={40}
+                                flipDelayMs={30}
+                                trigger={true}
+                            />
                         </p>
                     </motion.div>
                 )}
@@ -173,7 +205,15 @@ export default function Home() {
                                 initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
                             >
-                                <div className="result-section-title">📱 Telegram</div>
+                                <div className="result-section-title">
+                                    📱{' '}
+                                    <EncryptedText
+                                        text="Telegram"
+                                        revealDelayMs={60}
+                                        flipDelayMs={30}
+                                        trigger={!!results}
+                                    />
+                                </div>
                                 <div className="tg-info-card">
                                     <div style={{
                                         width: 52, height: 52, borderRadius: '50%',
@@ -187,7 +227,12 @@ export default function Home() {
                                     </div>
                                     <div className="tg-info-details">
                                         <div className="tg-info-name">
-                                            {results.telegram_info.first_name} {results.telegram_info.last_name || ''}
+                                            <EncryptedText
+                                                text={`${results.telegram_info.first_name || ''} ${results.telegram_info.last_name || ''}`.trim()}
+                                                revealDelayMs={50}
+                                                flipDelayMs={30}
+                                                trigger={!!results}
+                                            />
                                         </div>
                                         {results.telegram_info.username && (
                                             <div className="tg-info-username">@{results.telegram_info.username}</div>
@@ -213,8 +258,66 @@ export default function Home() {
                             </motion.div>
                         )}
 
-                        {/* Sherlock Results */}
-                        {results.sherlock_results?.length > 0 && (
+                        {/* ── Common Chats (Groups & Channels) ── */}
+                        {results.common_chats?.length > 0 && (
+                            <motion.div
+                                className="result-section"
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                            >
+                                <div className="result-section-title">
+                                    <HiUserGroup />
+                                    <EncryptedText
+                                        text={`Guruhlar va Kanallar (${results.common_chats.length})`}
+                                        revealDelayMs={40}
+                                        flipDelayMs={25}
+                                        trigger={!!results}
+                                    />
+                                </div>
+                                <div className="common-chats-grid">
+                                    {results.common_chats.map((chat, idx) => (
+                                        <motion.div
+                                            key={chat.id || idx}
+                                            className="chat-card"
+                                            initial={{ opacity: 0, y: 12 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.05 * idx }}
+                                        >
+                                            <div className="chat-card-icon">
+                                                {chatTypeEmoji[chat.type] || '📋'}
+                                            </div>
+                                            <div className="chat-card-info">
+                                                <div className="chat-card-title">{chat.title}</div>
+                                                <div className="chat-card-meta">
+                                                    <span className="chat-card-type">
+                                                        {chatTypeLabel[chat.type] || 'Chat'}
+                                                    </span>
+                                                    {chat.username && (
+                                                        <a
+                                                            href={`https://t.me/${chat.username}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="chat-card-link"
+                                                        >
+                                                            @{chat.username}
+                                                        </a>
+                                                    )}
+                                                    {chat.members_count && (
+                                                        <span className="chat-card-members">
+                                                            👤 {chat.members_count.toLocaleString()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* ── Stories ── */}
+                        {results.stories?.length > 0 && (
                             <motion.div
                                 className="result-section"
                                 initial={{ opacity: 0, y: 16 }}
@@ -222,8 +325,71 @@ export default function Home() {
                                 transition={{ delay: 0.15 }}
                             >
                                 <div className="result-section-title">
+                                    <HiCamera />
+                                    <EncryptedText
+                                        text={`Stories (${results.stories.length})`}
+                                        revealDelayMs={40}
+                                        flipDelayMs={25}
+                                        trigger={!!results}
+                                    />
+                                </div>
+                                <div className="stories-grid">
+                                    {results.stories.map((story, idx) => (
+                                        <motion.div
+                                            key={story.id || idx}
+                                            className="story-card"
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ delay: 0.06 * idx }}
+                                        >
+                                            {story.media_url ? (
+                                                <img
+                                                    src={story.media_url}
+                                                    alt={`Story ${story.id}`}
+                                                    className="story-card-media"
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <div className="story-card-placeholder">
+                                                    <HiCamera style={{ fontSize: '1.5rem', color: 'rgba(255,255,255,0.3)' }} />
+                                                </div>
+                                            )}
+                                            <div className="story-card-footer">
+                                                {story.date && (
+                                                    <span className="story-card-date">
+                                                        {new Date(story.date).toLocaleDateString('uz-UZ', {
+                                                            day: '2-digit', month: 'short',
+                                                        })}
+                                                    </span>
+                                                )}
+                                                {story.views != null && (
+                                                    <span className="story-card-views">
+                                                        👁 {story.views}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* Sherlock Results */}
+                        {results.sherlock_results?.length > 0 && (
+                            <motion.div
+                                className="result-section"
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                <div className="result-section-title">
                                     <HiGlobeAlt />
-                                    Topilgan saytlar ({results.total_sites_found})
+                                    <EncryptedText
+                                        text={`Topilgan saytlar (${results.total_sites_found})`}
+                                        revealDelayMs={35}
+                                        flipDelayMs={25}
+                                        trigger={!!results}
+                                    />
                                 </div>
                                 {results.sherlock_results.map((result, index) => (
                                     <motion.a

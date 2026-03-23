@@ -44,10 +44,31 @@ async def aggregate_search(username: str) -> Dict[str, Any]:
         print(f"❌ Telethon gather exception: {telegram_info}")
         telegram_info = None
     
-    # Get photos separately (depends on telegram_info)
+    # Get photos, common chats, and stories separately (depends on telegram_info)
     photos = []
+    common_chats = []
+    stories = []
     if telegram_info and telegram_info.get("user_id"):
-        photos = await _safe_get_photos(telegram_info["user_id"])
+        user_id = telegram_info["user_id"]
+        # Run all three in parallel
+        photos_task = asyncio.create_task(_safe_get_photos(user_id))
+        chats_task = asyncio.create_task(_safe_get_common_chats(user_id))
+        stories_task = asyncio.create_task(_safe_get_stories(user_id))
+        
+        photos, common_chats, stories = await asyncio.gather(
+            photos_task, chats_task, stories_task,
+            return_exceptions=True
+        )
+        
+        if isinstance(photos, Exception):
+            print(f"❌ Photos gather exception: {photos}")
+            photos = []
+        if isinstance(common_chats, Exception):
+            print(f"❌ Common chats gather exception: {common_chats}")
+            common_chats = []
+        if isinstance(stories, Exception):
+            print(f"❌ Stories gather exception: {stories}")
+            stories = []
     
     # Build aggregated result
     result = {
@@ -55,6 +76,8 @@ async def aggregate_search(username: str) -> Dict[str, Any]:
         "telegram_info": telegram_info,
         "sherlock_results": sherlock_results if isinstance(sherlock_results, list) else [],
         "profile_photos": photos,
+        "common_chats": common_chats if isinstance(common_chats, list) else [],
+        "stories": stories if isinstance(stories, list) else [],
         "total_sites_found": len([r for r in (sherlock_results if isinstance(sherlock_results, list) else []) if r.get("status") == "found"]),
         "search_timestamp": datetime.now(timezone.utc).isoformat(),
     }
@@ -108,3 +131,36 @@ async def _safe_get_photos(user_id: int) -> list:
     except Exception as e:
         print(f"❌ Photos aggregator error: {e}")
     return []
+
+
+async def _safe_get_common_chats(user_id: int) -> list:
+    """Get common chats/groups/channels with error handling and timeout."""
+    try:
+        chats = await asyncio.wait_for(
+            telethon_service.get_common_chats(user_id),
+            timeout=15  # 15 second timeout
+        )
+        return chats
+    except asyncio.TimeoutError:
+        print(f"⏰ Common chats fetch timed out for {user_id}")
+        return []
+    except Exception as e:
+        print(f"❌ Common chats aggregator error: {e}")
+        return []
+
+
+async def _safe_get_stories(user_id: int) -> list:
+    """Get user stories with error handling and timeout."""
+    try:
+        stories = await asyncio.wait_for(
+            telethon_service.get_user_stories(user_id),
+            timeout=20  # 20 second timeout for stories
+        )
+        return stories
+    except asyncio.TimeoutError:
+        print(f"⏰ Stories fetch timed out for {user_id}")
+        return []
+    except Exception as e:
+        print(f"❌ Stories aggregator error: {e}")
+        return []
+

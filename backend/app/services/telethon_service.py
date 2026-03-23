@@ -1,13 +1,17 @@
 """
 Telethon Service — Telegram user intelligence via MTProto API.
-Fetches user profile info, bio, photos, and online status.
+Fetches user profile info, bio, photos, online status, common chats, and stories.
 With reconnection support and robust error handling.
 """
 
 from telethon import TelegramClient
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.functions.photos import GetUserPhotosRequest
-from telethon.tl.types import UserStatusOnline, UserStatusRecently, UserStatusOffline
+from telethon.tl.functions.messages import GetCommonChatsRequest
+from telethon.tl.types import (
+    UserStatusOnline, UserStatusRecently, UserStatusOffline,
+    Channel, Chat, ChatForbidden, ChannelForbidden,
+)
 from app.config import settings
 import asyncio
 import os
@@ -140,3 +144,96 @@ async def get_user_by_id(user_id: int) -> dict:
     except Exception as e:
         print(f"❌ Could not get user {user_id}: {e}")
         return None
+
+
+async def get_common_chats(user_id: int) -> list:
+    """
+    Get common chats (groups/channels) between the bot and the target user.
+    Uses GetCommonChatsRequest from Telethon MTProto API.
+    Returns list of dicts with chat info.
+    """
+    chats = []
+    try:
+        client = await get_client()
+        entity = await client.get_entity(user_id)
+        
+        result = await client(GetCommonChatsRequest(
+            user_id=entity,
+            max_id=0,
+            limit=100
+        ))
+        
+        for chat in result.chats:
+            chat_type = "unknown"
+            if isinstance(chat, Channel):
+                chat_type = "channel" if chat.broadcast else "supergroup"
+            elif isinstance(chat, Chat):
+                chat_type = "group"
+            elif isinstance(chat, (ChatForbidden, ChannelForbidden)):
+                continue
+            
+            chats.append({
+                "id": chat.id,
+                "title": getattr(chat, 'title', 'Unknown'),
+                "type": chat_type,
+                "username": getattr(chat, 'username', None),
+                "members_count": getattr(chat, 'participants_count', None),
+            })
+        
+    except Exception as e:
+        print(f"⚠️ Could not get common chats for {user_id}: {e}")
+    
+    return chats
+
+
+async def get_user_stories(user_id: int) -> list:
+    """
+    Get user's profile stories via Telethon MTProto API.
+    Downloads story media and returns list of story info dicts.
+    """
+    stories = []
+    try:
+        client = await get_client()
+        entity = await client.get_entity(user_id)
+        
+        # Try to get stories using the stories API
+        try:
+            from telethon.tl.functions.stories import GetPeerStoriesRequest
+            result = await client(GetPeerStoriesRequest(peer=entity))
+            
+            if result and hasattr(result, 'stories') and result.stories:
+                story_items = result.stories.stories if hasattr(result.stories, 'stories') else []
+                
+                photos_dir = os.path.join(os.path.dirname(__file__), "..", "..", "photos")
+                os.makedirs(photos_dir, exist_ok=True)
+                
+                for i, story in enumerate(story_items[:10]):  # Max 10 stories
+                    story_info = {
+                        "id": getattr(story, 'id', i),
+                        "date": str(getattr(story, 'date', '')),
+                        "media_url": None,
+                        "views": getattr(story, 'views', None),
+                    }
+                    
+                    # Try to download story media
+                    if hasattr(story, 'media') and story.media:
+                        try:
+                            file_name = f"story_{user_id}_{story_info['id']}.jpg"
+                            file_path = os.path.join(photos_dir, file_name)
+                            await client.download_media(story.media, file=file_path)
+                            story_info["media_url"] = f"/api/photos/{file_name}"
+                        except Exception as me:
+                            print(f"⚠️ Could not download story media: {me}")
+                    
+                    stories.append(story_info)
+                    
+        except ImportError:
+            print("⚠️ Stories API not available in this Telethon version")
+        except Exception as e:
+            print(f"⚠️ Stories API error: {e}")
+    
+    except Exception as e:
+        print(f"⚠️ Could not get stories for {user_id}: {e}")
+    
+    return stories
+

@@ -6,9 +6,10 @@ Main application entry point.
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from telegram import Update
 from telegram.ext import Application
 
 from app.config import settings
@@ -36,26 +37,37 @@ async def lifespan(app: FastAPI):
     bot_app = Application.builder().token(settings.BOT_TOKEN).build()
     setup_bot(bot_app)
     
-    # Start bot polling in background
+    # Start bot
     await bot_app.initialize()
     await bot_app.start()
-    await bot_app.updater.start_polling(drop_pending_updates=True)
-    print("✅ Telegram Bot started")
+    
+    # Check for webhook vs polling
+    # Railway usually provides a public URL or we can use the domain
+    public_url = os.getenv("RAILWAY_PUBLIC_DOMAIN", os.getenv("PUBLIC_URL"))
+    
+    if public_url:
+        webhook_path = f"/api/bot/webhook/{settings.BOT_TOKEN.split(':')[0]}"
+        webhook_url = f"https://{public_url}{webhook_path}"
+        await bot_app.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
+        print(f"✅ Telegram Bot started (Webhook: {webhook_url})")
+    else:
+        # Polling (can cause Conflict during redeploys)
+        await bot_app.updater.start_polling(drop_pending_updates=True)
+        print("✅ Telegram Bot started (Polling)")
     
     # Create photos directory
     photos_dir = os.path.join(os.path.dirname(__file__), "..", "photos")
     os.makedirs(photos_dir, exist_ok=True)
     
     print("✅ OSINT TMA Backend ready!")
-    print(f"📡 API: http://localhost:8000")
-    print(f"🤖 Bot: @{settings.BOT_TOKEN.split(':')[0]}")
     
     yield
     
     # Shutdown
     print("🛑 Shutting down...")
     if bot_app:
-        await bot_app.updater.stop()
+        if not public_url:
+            await bot_app.updater.stop()
         await bot_app.stop()
         await bot_app.shutdown()
     print("👋 Goodbye!")
@@ -97,6 +109,25 @@ async def root():
         "service": "OSINT TMA Backend",
         "version": "1.0.0",
     }
+
+
+@app.post("/api/bot/webhook/{token_prefix}")
+async def telegram_webhook(token_prefix: str, request: Request):
+    """Handle incoming Telegram updates via webhook."""
+    if not bot_app:
+        return {"status": "error", "message": "Bot not initialized"}
+        
+    if token_prefix != settings.BOT_TOKEN.split(':')[0]:
+        return {"status": "unauthorized"}
+    
+    try:
+        data = await request.json()
+        update = Update.de_json(data, bot_app.bot)
+        await bot_app.update_queue.put(update)
+    except Exception as e:
+        print(f"❌ Webhook Error: {e}")
+        
+    return {"status": "ok"}
 
 
 @app.get("/api/health")
