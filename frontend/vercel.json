@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/:path*",
+            "destination": "https://osint-production-a9fa.up.railway.app/api/:path*"
+        }
+    ]
+}
